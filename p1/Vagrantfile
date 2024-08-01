@@ -1,0 +1,9 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "roboxes/debian12"
+
+  config.vm.provider "libvirt" do |v|
+    v.name = "Henkaoua" # VM Name
+    config.vm.hostname = "serverS"  # Hostname
+  end
+
+end
