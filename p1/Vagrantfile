@@ -1,9 +1,34 @@
 Vagrant.configure("2") do |config|
-  config.vm.box = "roboxes/debian12"
+  config.vm.box = "ubuntu/bionic64"
 
-  config.vm.provider "libvirt" do |v|
-    v.name = "Henkaoua" # VM Name
-    config.vm.hostname = "serverS"  # Hostname
+  config.vm.define "henkaouaS" do |controller|
+    controller.vm.hostname = "henkaouaS"
+    controller.vm.network "private_network", ip: "192.168.56.110"
+    controller.vm.provider "virtualbox" do |v|
+      v.memory = 512
+      v.cpus = 1
+    end
+
+    controller.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update
+      curl -sfL https://get.k3s.io | sh -
+      curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+    SHELL
   end
 
+  config.vm.define "henkaouaSW" do |worker|
+    worker.vm.hostname = "henkaouaSW"
+    worker.vm.network "private_network", ip: "192.168.56.111"
+    worker.vm.provider "virtualbox" do |v|
+      v.memory = 512
+      v.cpus = 1
+    end
+    worker.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update
+      curl -sfL https://get.k3s.io | K3S_URL=https://192.168.56.110:6443 K3S_TOKEN=$(ssh -i /vagrant/.vagrant/machines/henkaouaS/virtualbox/private_key vagrant@192.168.56.110 "sudo cat /var/lib/rancher/k3s/server/node-token") sh -
+      curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+    SHELL
+  end
 end
