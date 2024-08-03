@@ -1,16 +1,27 @@
+BOX = "generic/alpine312"
+MEMORY = 1024
+CPU = 1
+CONTROLLER = "henkaouaS"
+WORKER = "henkaouaSW"
+
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/bionic64"
+  config.vm.box = BOX
 
-  config.vm.define "henkaouaS" do |controller|
-    controller.vm.hostname = "henkaouaS"
+  config.vm.provider "virtualbox" do | v |
+    v.memory = MEMORY
+    v.cpus = CPU
+    v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    v.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+    v.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000 ]
+  end
+
+  config.vm.define CONTROLLER do |controller|
+    controller.vm.hostname = CONTROLLER
     controller.vm.network "private_network", ip: "192.168.56.110"
-    controller.vm.provider "virtualbox" do |v|
-      v.memory = 1024
-      v.cpus = 1
-    end
-
     controller.vm.provision "shell", inline: <<-SHELL
-      curl -sfL https://get.k3s.io | sh -
+      echo -n "192.168.56.110 #{CONTROLLER}\n192.168.56.111 #{WORKER}" >> /etc/hosts
+      curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode=644 --flannel-iface=eth1
+      cp /var/lib/rancher/k3s/server/token /vagrant/token
       curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
       chmod +x ./kubectl
       sudo mv ./kubectl /usr/local/bin/kubectl
@@ -20,20 +31,12 @@ Vagrant.configure("2") do |config|
     SHELL
   end
 
-  config.vm.define "henkaouaSW" do |worker|
-    worker.vm.hostname = "henkaouaSW"
+  config.vm.define WORKER do |worker|
+    worker.vm.hostname = WORKER
     worker.vm.network "private_network", ip: "192.168.56.111"
-    worker.vm.provider "virtualbox" do |v|
-      v.memory = 1024
-      v.cpus = 1
-    end
     worker.vm.provision "shell", inline: <<-SHELL
-      # Install K3s in agent mode, pointing to the controller node
-      K3S_URL=https://192.168.56.110:6443
-      K3S_TOKEN=$(ssh vagrant@192.168.56.110 sudo cat /var/lib/rancher/k3s/server/node-token)
-      curl -sfL https://get.k3s.io | K3S_URL=$K3S_URL K3S_TOKEN=$K3S_TOKEN sh -
-
-      # Install kubectl
+      echo -n "192.168.56.110 #{CONTROLLER}\n192.168.56.111 #{WORKER}" >> /etc/hosts
+      curl -sfL https://get.k3s.io | sh -s - agent --server=https://192.168.56.110:6443 --token-file=/vagrant/token --flannel-iface=eth1
       curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
       chmod +x ./kubectl
       sudo mv ./kubectl /usr/local/bin/kubectl
