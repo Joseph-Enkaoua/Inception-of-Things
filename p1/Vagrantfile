@@ -1,62 +1,30 @@
-BOX = "ubuntu/jammy64"
-MEMORY = 1024
-CPU = 1
-CONTROLLER = "henkaouaS"
-AGENT = "henkaouaSW"
-
 Vagrant.configure("2") do |config|
-  config.vm.define CONTROLLER do |controller|
-    controller.vm.box = BOX
-    controller.vm.network "private_network", ip: "192.168.56.110"
-    controller.vm.hostname = CONTROLLER
-    controller.vm.provider "virtualbox" do |vb|
-      vb.memory = MEMORY
-      vb.cpus = CPU
-    end
-    controller.vm.provision "shell", inline: <<-SHELL
-      # Update package list and install necessary packages
-      apt-get update
-      apt-get install -y curl
-      sudo ufw disable
+  config.vm.box = "generic/alpine318"
 
-      # Install kubectl
-      curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-      chmod +x kubectl
-      mv kubectl /usr/local/bin/
+  config.vm.provider "virtualbox" do |virtualbox|
+    virtualbox.memory = 1024
+    virtualbox.cpus = 1
+  end
 
-      # Install k3s in controller mode
-      curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644
-
-      # Save the join token for agent nodes
-      mkdir -p /vagrant/k3s
-      cp /var/lib/rancher/k3s/server/node-token /vagrant/k3s/node-token
+  config.vm.define "henkaouaS" do |server|
+    server.vm.hostname = "henkaouaS"
+    server.vm.network "private_network", ip: "192.168.56.110"
+    server.vm.synced_folder ".", "/vagrant"
+    server.vm.provision "shell", privileged: true, inline: <<-SHELL
+      apk add curl
+      curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode=644 --node-ip 192.168.56.110 --bind-address=192.168.56.110" sh -s -
+      sleep 10
+      cp /var/lib/rancher/k3s/server/node-token /vagrant/.
     SHELL
   end
 
-  config.vm.define AGENT do |agent|
-    agent.vm.box = BOX
-    agent.vm.network "private_network", ip: "192.168.56.111"
-    agent.vm.hostname = AGENT
-    agent.vm.provider "virtualbox" do |vb|
-      vb.memory = MEMORY
-      vb.cpus = CPU
-    end
-    agent.vm.provision "shell", inline: <<-SHELL
-      # Update package list and install necessary packages
-      apt-get update
-      apt-get install -y curl
-      sudo ufw disable
-
-      # Install kubectl
-      curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-      chmod +x kubectl
-      mv kubectl /usr/local/bin/
-
-      # Install k3s in agent mode
-      K3S_TOKEN=$(cat /vagrant/k3s/node-token)
-      K3S_URL=https://192.168.56.110:6443
-      curl -sfL https://get.k3s.io | K3S_URL=$K3S_URL K3S_TOKEN=$K3S_TOKEN sh -
-
+  config.vm.define "henkaouaSW" do |worker|
+    worker.vm.hostname = "henkaouaSW"
+    worker.vm.network "private_network", ip: "192.168.56.111"
+    worker.vm.synced_folder ".", "/vagrant"
+    worker.vm.provision "shell", privileged: true, inline: <<-SHELL
+      apk add curl
+      curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent --server https://192.168.56.110:6443 --token-file /vagrant/node-token --node-ip=192.168.56.111" sh -s -
     SHELL
   end
 end
