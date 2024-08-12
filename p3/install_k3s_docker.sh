@@ -1,11 +1,17 @@
 for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove $pkg; done
 
+echo "WILL UPDATE"
 sudo apt-get update
+
+echo "WILL INSTALL VIM"
 sudo apt-get install -y vim
 
 # Add Docker's official GPG key:
+echo "WILL INSTALL CERT & CURL"
 sudo apt-get install -y ca-certificates curl
+echo "WILL INSTALL KEYRINGS"
 sudo install -m 0755 -d /etc/apt/keyrings
+echo "WILL DOWNLOAD DOCKER"
 sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 
