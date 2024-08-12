@@ -1,5 +1,5 @@
-apt remove -y vim
-apt remove -y docker
-apt remove -y curl
+sudo apt remove -y vim
+sudo apt remove -y docker
+sudo apt remove -y curl
 
-/usr/local/bin/k3s-uninstall.sh
+sudo /usr/local/bin/k3s-uninstall.sh
