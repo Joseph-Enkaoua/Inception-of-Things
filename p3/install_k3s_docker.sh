@@ -4,6 +4,6 @@ apt install -y curl
 
 curl -sfL https://get.k3s.io | sh -
 
-sudo systemctl status k3s
+sleep 10
 
 kubectl get nodes
