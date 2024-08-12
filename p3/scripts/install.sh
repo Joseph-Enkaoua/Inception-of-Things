@@ -31,14 +31,4 @@ sleep 10
 # Install K3D
 sudo curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=v5.0.0 bash
 
-# Start docker demon
-sudo service docker start (if systemctl doesnt work)
-
-echo "Waiting for Docker to start..."
-
-while ! docker info > /dev/null 2>&1; do
-    echo -n "."
-    sleep 1
-done
-
 echo "Installation complete!"
