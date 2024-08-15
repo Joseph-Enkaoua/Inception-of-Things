@@ -1,0 +1,88 @@
+# Deployment: app1
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-app1
+  labels:
+    app: deploy-app1
+spec:
+  selector:
+    matchLabels:
+      app: app1
+  template:
+    metadata:
+      labels:
+        app: app1
+    spec:
+      containers:
+      - name: app1
+        image: nginx:stable # Image
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: app1-volume
+          mountPath: /usr/share/nginx/html # Chemin du volume dans le container
+      volumes:
+      - name: app1-volume
+        hostPath:
+          path: /vagrant/rsc/app1 # Chemin du volume sur la machine hôte
+---
+# Deployment: app2
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-app2
+  labels:
+    app: deploy-app2
+spec:
+  replicas: 3 # Nombre de réplicas (mandatory)
+  selector:
+    matchLabels:
+      app: app2
+  template:
+    metadata:
+      labels:
+        app: app2
+    spec:
+      containers:
+      - name: app2
+        image: nginx:stable
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: app2-volume
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: app2-volume
+        hostPath:
+          path: /vagrant/rsc/app2
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-app3
+  labels:
+    app: deploy-app3
+spec:
+  selector:
+    matchLabels:
+      app: app3
+  template:
+    metadata:
+      labels:
+        app: app3
+    spec:
+      containers:
+      - name: app3
+        image: nginx:stable
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: app3-volume
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: app3-volume
+        hostPath:
+          path: /vagrant/rsc/app3
