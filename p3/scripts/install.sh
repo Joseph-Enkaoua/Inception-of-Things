@@ -1,34 +1,21 @@
-# Remove all pkgs that may interup docker installation 
-for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove $pkg; done
+#!/bin/bash
 
-sudo apt-get update
+if ! command -v brew &> /dev/null; then
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
 
-sudo apt-get install -y vim
+brew update
 
-# Add Docker's official GPG key:
-sudo apt-get install -y ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
+if ! command -v docker &> /dev/null; then
+    echo "Docker is not installed. Please download and install Docker Desktop for Mac from https://www.docker.com/products/docker-desktop"
+    echo "After installation, please run this script again."
+    exit 1
+fi
 
-# Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-# Run a short image to test docker
-sudo docker run hello-world
-
-# Install K3S
-sudo curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode=644" sh -
-
-sleep 10
+# Test Docker installation
+docker run hello-world
 
 # Install K3D
-sudo curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=v5.0.0 bash
+brew install k3d
 
 echo "Installation complete!"

@@ -1,32 +1,29 @@
-# Start docker demon
-sudo service docker start (if systemctl doesnt work)
+k3d cluster delete --all
 
-echo "Waiting for Docker to start..."
-
+# Start Docker daemon (Docker Desktop on Mac typically starts automatically)
+echo "Checking if Docker is running..."
 while ! docker info > /dev/null 2>&1; do
-    echo -n "."
-    sleep 1
+    echo "Docker is not running. Please start Docker Desktop."
+    sleep 5
 done
-
 echo "Docker is running!"
 
 # Create k3d cluster
-sudo k3d cluster create inception -p 8080:80@loadbalancer -p 8443:443@loadbalancer -p 8888:8888@loadbalancer
+k3d cluster create inception --port "8888:30000" --port "8080:30001"
 
-# Installing argocd
-sudo kubectl create namespace argocd
-sudo kubectl create namespace dev
+# Create Namespaces
+kubectl create namespace argocd
+kubectl create namespace dev
+# kubectl config view --raw > ~/.kube/config
 
-sudo kubectl get inception > ~/.kube/config
+# Install argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-# Install argocd CRDS
-sudo kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# Change the argocd-server service type to LoadBalancer so we can access it
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort", "ports": [{"port": 443, "targetPort": 8080, "nodePort": 30001}]}}'
+kubectl -n argocd rollout status deployment argocd-server
 
-# Expose argocd API server
-# sudo kubectl port-forward svc/argocd-server -n argocd 8080:443
-sudo kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
-sudo kubectl -n argocd rollout status deployment argocd-server
+kubectl apply -f ../app/argocd-application.yaml
 
 # Print argocd admin password
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
-
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -D; echo
