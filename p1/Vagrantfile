@@ -14,8 +14,9 @@ Vagrant.configure("2") do |config|
     server.vm.provision "shell", privileged: true, inline: <<-SHELL
       apk add curl
       curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode=644 --node-ip 192.168.56.110 --bind-address=192.168.56.110" sh -s --flannel-iface "eth1" -
-      sleep 10
+      sleep 15
       cp /var/lib/rancher/k3s/server/node-token /vagrant/.
+      cp /etc/rancher/k3s/k3s.yaml /vagrant/.
     SHELL
   end
 
@@ -27,6 +28,8 @@ Vagrant.configure("2") do |config|
     worker.vm.provision "shell", privileged: true, inline: <<-SHELL
       apk add curl
       curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent --server https://192.168.56.110:6443 --token-file /vagrant/node-token --node-ip=192.168.56.111" sh -s --flannel-iface "eth1" -
+      echo "export KUBECONFIG=/vagrant/k3s.yaml" >> /etc/profile
+      source /etc/profile
     SHELL
   end
 end
